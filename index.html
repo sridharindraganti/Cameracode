@@ -3,31 +3,65 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Camera Capture</title>
+<title>License Plate Detection</title>
+<style>
+  #captureButton {
+    display: block;
+    margin: 20px auto;
+    padding: 10px 20px;
+    font-size: 1.2rem;
+  }
+  #canvas {
+    display: none; /* Hide the canvas element */
+  }
+</style>
 </head>
 <body>
-<video id="player" controls autoplay></video>
-<button id="capture">Capture</button>
-<canvas id="canvas" width="320" height="240"></canvas>
-<script>
-  const player = document.getElementById('player');
-  const canvas = document.getElementById('canvas');
-  const context = canvas.getContext('2d');
-  const captureButton = document.getElementById('capture');
+<canvas id="canvas"></canvas>
+<button id="captureButton">Capture</button>
 
+<script>
+const canvas = document.getElementById('canvas');
+const captureButton = document.getElementById('captureButton');
+
+captureButton.addEventListener('click', () => {
+  const context = canvas.getContext('2d');
+  const video = document.createElement('video');
   const constraints = {
-    video: true,
+    video: true
   };
 
-  captureButton.addEventListener('click', () => {
-    // Draw the video frame to the canvas.
-    context.drawImage(player, 0, 0, canvas.width, canvas.height);
-  });
+  navigator.mediaDevices.getUserMedia(constraints)
+    .then((stream) => {
+      video.srcObject = stream;
+      video.onloadedmetadata = () => {
+        const videoWidth = video.videoWidth;
+        const videoHeight = video.videoHeight;
+        canvas.width = videoWidth;
+        canvas.height = videoHeight;
 
-  // Attach the video stream to the video element and autoplay.
-  navigator.mediaDevices.getUserMedia(constraints).then((stream) => {
-    player.srcObject = stream;
-  });
+        // Draw a rectangle box for license plate extraction
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.strokeStyle = 'red';
+        context.lineWidth = 2;
+        context.strokeRect(videoWidth / 4, videoHeight / 4, videoWidth / 2, videoHeight / 2);
+
+        // Capture the image within the rectangle box
+        context.drawImage(video, videoWidth / 4, videoHeight / 4, videoWidth / 2, videoHeight / 2, 0, 0, videoWidth, videoHeight);
+
+        // Stop the video stream
+        stream.getVideoTracks()[0].stop();
+
+        // Display the captured image on the webpage
+        const capturedImage = new Image();
+        capturedImage.src = canvas.toDataURL();
+        document.body.appendChild(capturedImage);
+      };
+    })
+    .catch((error) => {
+      console.error('Error accessing the camera: ', error);
+    });
+});
 </script>
 </body>
 </html>
